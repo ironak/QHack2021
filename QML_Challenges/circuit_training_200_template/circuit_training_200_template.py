@@ -58,11 +58,20 @@ def find_max_independent_set(graph, params):
         return qml.probs(wires=range(NODES))
 
     probs = probability_circuit(params[0], params[1])
-    binary_best = ("{:0" + str(NODES) + "b}").format(probs.argmax())
+
     max_ind_set = []
-    for i in range(NODES):
-        if binary_best[i] == '1':
+
+##    binary_best = ("{:0" + str(NODES) + "b}").format(probs.argmax())
+##    for i in range(NODES):
+##        if binary_best[i] == '1':
+##            max_ind_set.append(i)
+
+    best = probs.argmax()
+    for i in range(NODES-1,-1,-1):
+        if best % 2 == 1:
             max_ind_set.append(i)
+        best >>= 1
+    max_ind_set.reverse()
 
     # QHACK #
 
