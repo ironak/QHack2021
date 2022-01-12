@@ -2,7 +2,7 @@
 
 import sys
 import pennylane as qml
-import numpy as np
+from pennylane import numpy as np
 
 
 def variational_ansatz(params, wires):
@@ -21,6 +21,8 @@ def variational_ansatz(params, wires):
     """
 
     # QHACK #
+
+    qml.QubitStateVector(params, wires=wires)
 
     # QHACK #
 
@@ -41,15 +43,42 @@ def run_vqe(H):
 
     # QHACK #
 
+    num_qubits = len(H.wires)
+
     # Initialize the quantum device
+    dev = qml.device("default.qubit", wires=num_qubits)
 
     # Randomly choose initial parameters (how many do you need?)
+    num_param_sets = 2 ** num_qubits
+    norm = 0
+    while norm == 0:
+        params = np.random.uniform(low=-1, high=1, size=num_param_sets)
+        norm = np.linalg.norm(params)
+    params = params / norm
 
     # Set up a cost function
+    @qml.qnode(dev)
+    def cost_fn(params):
+        variational_ansatz(params, wires=H.wires)
+        return qml.expval(H)
 
     # Set up an optimizer
+    opt = qml.GradientDescentOptimizer(stepsize=0.03)
 
     # Run the VQE by iterating over many steps of the optimizer
+    max_iterations = 500
+    conv_tol = 0.001
+
+    for n in range(max_iterations):
+        params, prev_energy = opt.step_and_cost(cost_fn, params)
+        norm = np.linalg.norm(params)
+        if norm == 0:
+            break
+        params = params / norm
+        energy = cost_fn(params)
+        conv = np.abs(energy - prev_energy)
+        if conv <= conv_tol:
+            break
 
     # QHACK #
 
