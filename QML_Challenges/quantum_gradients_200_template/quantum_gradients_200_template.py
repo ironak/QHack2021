@@ -47,9 +47,40 @@ def gradient_200(weights, dev):
 
     # QHACK #
 
+    s = 0.1
+    n = len(gradient)
+
+    e = []
+    for i in range(n):
+        basic_vect = np.zeros([5], dtype=np.float64)
+        basic_vect[i] = 1
+        e.append(basic_vect)
+
+    cache = {}
+    def circ_wrap(pert):
+        key = pert.tobytes()
+        if key not in cache:
+            cache[key] = circuit(weights + pert)
+        return cache[key]
+
+    def first_deriv(i):
+        # Use s = 2s to save an extra computation
+        return ( circ_wrap(2*s*e[i]) - circ_wrap(-2*s*e[i]) ) / (2*np.sin(2*s))
+
+    def second_deriv(i,j):
+        return (  circ_wrap(s*(e[i] + e[j]))
+                - circ_wrap(s*(e[i] - e[j]))
+                - circ_wrap(s*(-e[i] + e[j]))
+                + circ_wrap(s*(-e[i] - e[j])) ) / (4*np.sin(s)**2)
+
+    for i in range(n):
+        gradient[i] = first_deriv(i)
+        for j in range(n):
+            hessian[i,j] = second_deriv(i,j)
+
     # QHACK #
 
-    return gradient, hessian, circuit.diff_options["method"]
+    return gradient, hessian, circuit.diff_method
 
 
 if __name__ == "__main__":
